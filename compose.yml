@@ -1,0 +1,17 @@
+services:
+  ynym-kakeibo-backend:
+    build:
+      context: .
+    container_name: ynym-kakeibo-backend
+    hostname: ynym-kakeibo-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+psycopg://admin:Etsryacas%2324@ynym-portal-db:5432/kakeibo
+      - TZ=Asia/Tokyo
+    ports:
+      - 8080:80
+
+networks:
+  default:
+    name: ynym-portal-network
+    external: true
