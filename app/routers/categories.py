@@ -39,3 +39,31 @@ def fetch_category(id: UUID, db=Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/delete", summary="カテゴリー削除", status_code=204)
+def delete_category(id: UUID, db=Depends(get_db)):
+    """クエリパラメーター `id` を受け取り、該当するカテゴリを削除する。
+
+    - 存在しない場合は 404 を返す
+    - 成功時は 204 No Content を返す
+    - DB エラーは 500 を返す
+    """
+    try:
+        record = db.get(Category, id)
+        if not record:
+            raise HTTPException(status_code=404, detail="カテゴリーが見つかりません")
+        # 削除してコミット
+        db.delete(record)
+        db.commit()
+        # 204 を返すために何も返さない
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        # 何らかの DB エラー等が起きた場合はロールバックして 500
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
