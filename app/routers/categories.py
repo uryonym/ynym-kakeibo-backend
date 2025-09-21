@@ -3,7 +3,9 @@ from typing import List
 from uuid import UUID
 
 from app.models.categories import Category
-from app.schemas.categories import CategorySchema
+from app.schemas.categories import CategorySchema, CategoryEdit
+from uuid import uuid4
+from fastapi import status
 from app.db import get_db
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -21,7 +23,7 @@ def fetch_categories(db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/get", response_model=CategorySchema, summary="カテゴリー単体取得")
+@router.get("/{id}", response_model=CategorySchema, summary="カテゴリー単体取得")
 def fetch_category(id: UUID, db=Depends(get_db)):
     """クエリパラメーター `id` を受け取り、該当するカテゴリを返す。
 
@@ -41,7 +43,65 @@ def fetch_category(id: UUID, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/delete", summary="カテゴリー削除", status_code=204)
+@router.post(
+    "/",
+    response_model=CategorySchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="カテゴリー作成",
+)
+def create_category(payload: CategoryEdit, db=Depends(get_db)):
+    """新しいカテゴリを作成する
+
+    - 成功時は 201 と作成したリソースを返す
+    - DB エラーは 500 を返す
+    """
+    try:
+        new_id = uuid4()
+        category = Category(id=new_id, name=payload.name, seq=payload.seq)
+        db.add(category)
+        db.commit()
+        # commit 後に最新の状態を返すために refresh
+        db.refresh(category)
+        return category
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{id}", response_model=CategorySchema, summary="カテゴリー更新")
+def update_category(id: UUID, payload: CategoryEdit, db=Depends(get_db)):
+    """指定した ID のカテゴリを更新する
+
+    - 存在しない場合は 404 を返す
+    - 成功時は更新後のオブジェクトを返す
+    - DB エラーは 500 を返す
+    """
+    try:
+        record = db.get(Category, id)
+        if not record:
+            raise HTTPException(status_code=404, detail="カテゴリーが見つかりません")
+
+        # 部分更新を適用
+        record.name = payload.name
+        record.seq = payload.seq
+
+        db.commit()
+        db.refresh(record)
+        return record
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{id}", summary="カテゴリー削除", status_code=204)
 def delete_category(id: UUID, db=Depends(get_db)):
     """クエリパラメーター `id` を受け取り、該当するカテゴリを削除する。
 

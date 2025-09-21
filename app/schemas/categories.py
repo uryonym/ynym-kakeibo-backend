@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import uuid
 from pydantic import BaseModel
 
@@ -14,3 +12,8 @@ class CategorySchema(BaseModel):
         # SQLAlchemy ORM インスタンスの属性からの変換を許可
         "from_attributes": True,
     }
+
+
+class CategoryEdit(BaseModel):
+    name: str
+    seq: int
