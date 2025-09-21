@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
+from uuid import UUID
 
 from app.models.categories import Category
 from app.schemas.categories import CategorySchema
@@ -16,5 +17,25 @@ def fetch_categories(db=Depends(get_db)):
             return []
         # ORMインスタンスのリストをそのまま返し、FastAPIによるPydantic変換に任せる
         return records
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get", response_model=CategorySchema, summary="カテゴリー単体取得")
+def fetch_category(id: UUID, db=Depends(get_db)):
+    """クエリパラメーター `id` を受け取り、該当するカテゴリを返す。
+
+    - 存在しない場合は 404 を返す
+    - DB/検索エラーは 500 を返す
+    """
+    try:
+        # SQLAlchemy 2 系推奨の Session.get を使用して主キーで取得
+        record = db.get(Category, id)
+        if not record:
+            # 見つからない場合は 404 を返す
+            raise HTTPException(status_code=404, detail="カテゴリーが見つかりません")
+        return record
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
