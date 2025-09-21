@@ -6,7 +6,7 @@ services:
     hostname: ynym-kakeibo-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql+psycopg://admin:Etsryacas%2324@ynym-portal-db:5432/kakeibo
+      - DATABASE_URL=postgresql+psycopg://uryonym:Etsryacas%2324@ynym-portal-db:5432/kakeibo
       - TZ=Asia/Tokyo
 
 networks:
